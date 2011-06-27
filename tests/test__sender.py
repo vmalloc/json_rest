@@ -17,6 +17,13 @@ class SenderInitializationTest(TestCase):
     def test__from_host_port_suffix(self):
         sender = json_rest_sender.JSONRestSender.from_host_port("a", 80, "some/path")
         self.assertEquals(sender.get_uri(), "http://a:80/some/path")
+    def test__subclassing(self):
+        class NewSender(json_rest_sender.JSONRestSender):
+            pass
+        sender = NewSender("http://some/url")
+        new_sender = sender.get_sub_resource("a/b")
+        self.assertIsNot(sender, new_sender)
+        self.assertIsInstance(new_sender, NewSender)
 
 class SenderTest(TestCase):
     def setUp(self):
@@ -28,6 +35,7 @@ class SenderTest(TestCase):
         self.forge.replace(json_rest_sender, "urlopen")
     def test__get_sub_resource(self):
         sub_sender = self.sender.get_sub_resource('a/b')
+        self.assertIsNot(sub_sender, self.sender)
         self.assertEquals(sub_sender.get_uri(), self.uri + '/a/b')
     def test__get(self):
         self._test__request('GET', return_data=dict(a=1, b=2))

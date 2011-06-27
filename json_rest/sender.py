@@ -21,7 +21,7 @@ class JSONRestSender(object):
     def append_uri_fragment(self, fragment):
         self._uri = _urljoin(self._uri, fragment)
     def get_sub_resource(self, resource):
-        returned = JSONRestSender(self._uri)
+        returned = type(self)(self._uri)
         returned.append_uri_fragment(resource)
         return returned
     def post(self, uri=None, data=NO_DATA):
