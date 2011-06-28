@@ -58,7 +58,10 @@ class JSONRestSender(object):
                 error_data = cjson.decode(error_data)
             else:
                 error_data = Raw(error_data)
-            raise JSONRestRequestException(method, full_uri, e.code, data, error_data)
+            raise JSONRestRequestException(
+                method, full_uri, e.code,
+                sent_headers=request.headers,
+                sent_data=data, received_headers=e.headers, received_data=error_data)
         response_data = response.read()
         _logger.debug("Got response: code=%s data=%r", response.code, response_data)
         return self._build_response_data(response, response_data)
