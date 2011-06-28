@@ -1,3 +1,4 @@
+import logging
 import cjson
 from urllib2 import urlopen
 from urllib2 import HTTPError
@@ -5,6 +6,9 @@ from urllib2 import Request as URLLibRequest
 from .exceptions import JSONRestRequestException
 from .sentinels import NO_DATA
 from .raw import Raw
+
+_logger = logging.getLogger("json_rest")
+_logger.addHandler(logging.NullHandler())
 
 class JSONRestSender(object):
     def __init__(self, uri):
@@ -41,6 +45,7 @@ class JSONRestSender(object):
         if uri is not None:
             full_uri = _urljoin(full_uri, uri)
         request = RestRequest(method, full_uri, send_data)
+        _logger.debug("Sending request: %s", request)
         request.add_header("Accept", "application/json")
         if send_data:
             request.add_header('Content-type', 'application/json')
@@ -48,19 +53,21 @@ class JSONRestSender(object):
             response = urlopen(request)
         except HTTPError, e:
             error_data = e.fp.read()
+            _logger.debug("Got response: code=%s data=%r", e.code, error_data)
             if e.headers.get('content-type') == 'application/json':
                 error_data = cjson.decode(error_data)
             else:
                 error_data = Raw(error_data)
             raise JSONRestRequestException(method, full_uri, e.code, data, error_data)
-        return self._build_response_data(response)
-    def _build_response_data(self, response):
-        data = response.read()
-        if data:
+        response_data = response.read()
+        _logger.debug("Got response: code=%s data=%r", response.code, response_data)
+        return self._build_response_data(response, response_data)
+    def _build_response_data(self, response, response_data):
+        if response_data:
             if response.headers.get('Content-type') == 'application/json':
-                return cjson.decode(data)
+                return cjson.decode(response_data)
             else:
-                return Raw(data)
+                return Raw(response_data)
         return NO_DATA
 
 def _urljoin(*urls):
@@ -81,3 +88,5 @@ class RestRequest(URLLibRequest):
         self._method = method
     def get_method(self):
         return self._method
+    def __repr__(self):
+        return "<%s %s <-- %r>" % (self._method, self.get_full_url(), self.get_data())
