@@ -10,7 +10,19 @@ from .raw import Raw
 _logger = logging.getLogger("json_rest")
 _logger.addHandler(logging.NullHandler())
 
-class JSONRestSender(object):
+class AbstractJSONRestSender(object):
+    def post(self, uri=None, data=NO_DATA):
+        return self.send_request('POST', uri, data)
+    def get(self, uri=None):
+        return self.send_request('GET', uri, NO_DATA)
+    def put(self, uri=None, data=NO_DATA):
+        return self.send_request('PUT', uri, data)
+    def delete(self, uri=None):
+        return self.send_request('DELETE', uri, NO_DATA)
+    def send_request(self, method, uri, data):
+        raise NotImplementedError()
+
+class JSONRestSender(AbstractJSONRestSender):
     def __init__(self, uri):
         super(JSONRestSender, self).__init__()
         self._uri = uri
@@ -28,14 +40,6 @@ class JSONRestSender(object):
         returned = type(self)(self._uri)
         returned.append_uri_fragment(resource)
         return returned
-    def post(self, uri=None, data=NO_DATA):
-        return self.send_request('POST', uri, data)
-    def get(self, uri=None):
-        return self.send_request('GET', uri, NO_DATA)
-    def put(self, uri=None, data=NO_DATA):
-        return self.send_request('PUT', uri, data)
-    def delete(self, uri=None):
-        return self.send_request('DELETE', uri, NO_DATA)
     def send_request(self, method, uri, data):
         if data is NO_DATA:
             send_data = ''
