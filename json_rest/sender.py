@@ -29,14 +29,14 @@ class JSONRestSender(object):
         returned.append_uri_fragment(resource)
         return returned
     def post(self, uri=None, data=NO_DATA):
-        return self._request('POST', uri, data)
+        return self.send_request('POST', uri, data)
     def get(self, uri=None):
-        return self._request('GET', uri, NO_DATA)
+        return self.send_request('GET', uri, NO_DATA)
     def put(self, uri=None, data=NO_DATA):
-        return self._request('PUT', uri, data)
+        return self.send_request('PUT', uri, data)
     def delete(self, uri=None):
-        return self._request('DELETE', uri, NO_DATA)
-    def _request(self, method, uri, data):
+        return self.send_request('DELETE', uri, NO_DATA)
+    def send_request(self, method, uri, data):
         if data is NO_DATA:
             send_data = ''
         else:
