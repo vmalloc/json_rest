@@ -1,6 +1,6 @@
 Overview
 --------
-json_rest is a set of utilities for talking to JSON/ReST web services via Python.
+json_rest is a set of utilities for talking to JSON/REST web services via Python.
 
 JSONRestSender
 ==============
