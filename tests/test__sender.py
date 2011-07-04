@@ -95,7 +95,7 @@ class SenderTest(TestCase):
         with self.forge.verified_replay_context():
             result = self.sender.get()
         self.assertIsInstance(result, Raw)
-        self.assertEquals(result, data)
+        self.assertEquals(result.data, data)
     def test__http_error_json_encoded(self):
         self._test__http_error(json=True)
     def test__http_error_non_json_encoded(self):
@@ -121,7 +121,7 @@ class SenderTest(TestCase):
             self.assertEquals(exception.received_data, error_data)
         else:
             self.assertIsInstance(exception.received_data, Raw)
-            self.assertEquals(exception.received_data, cjson.encode(error_data))
+            self.assertEquals(exception.received_data.data, cjson.encode(error_data))
 
 
 
