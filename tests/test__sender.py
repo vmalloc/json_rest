@@ -3,7 +3,7 @@ from .test_utils import TestCase
 from cStringIO import StringIO
 from json_rest import sender as json_rest_sender
 from json_rest import Raw
-from json_rest.sentinels import NO_DATA
+from json_rest import NO_DATA
 from json_rest.exceptions import JSONRestRequestException
 import cjson
 import forge
@@ -39,6 +39,17 @@ class SenderTest(TestCase):
         self.assertEquals(sub_sender.get_uri(), self.uri + '/a/b')
     def test__get(self):
         self._test__request('GET', return_data=dict(a=1, b=2))
+    def test__empty_content_and_json_encoded(self):
+        send_data = dict(a=1, b=2)
+        self._expect_json_rest_request('POST', self.uri, send_data).and_return(FakeResponse(httplib.OK, '', content_type='application/json'))
+        self.forge.replay()
+        with self.assertRaises(cjson.DecodeError):
+            self.sender.post(data=send_data)
+    def test__empty_content_not_json_encoded(self):
+        send_data = dict(a=1, b=2)
+        self._expect_json_rest_request('POST', self.uri, send_data).and_return(FakeResponse(httplib.OK, ''))
+        self.forge.replay()
+        self.assertEquals(Raw(''), self.sender.post(data=send_data))
     def test__post(self):
         self._test__request('POST', dict(a=1, b=2))
     def test__delete(self):
@@ -50,13 +61,17 @@ class SenderTest(TestCase):
             self._test__request_sending(method, send_data, return_data, subpath)
     def _test__request_sending(self, method, send_data, return_data, subpath):
         func = getattr(self.sender, method.lower())
-        response_data = '' if return_data is NO_DATA else cjson.encode(return_data)
+        if return_data is NO_DATA:
+            response_data = ''
+            response_code = httplib.NO_CONTENT
+        else:
+            response_data = cjson.encode(return_data)
+            response_code = httplib.OK
         expected_url = self.uri
         if subpath is not None:
             assert not subpath.startswith('/')
             expected_url += '/' + subpath
-
-        self._expect_json_rest_request(method, expected_url, send_data).and_return(FakeResponse(httplib.OK, response_data, content_type='application/json'))
+        self._expect_json_rest_request(method, expected_url, send_data).and_return(FakeResponse(response_code, response_data, content_type='application/json'))
 
         with self.forge.verified_replay_context():
             args = []
@@ -85,7 +100,6 @@ class SenderTest(TestCase):
         returned = json_rest_sender.urlopen(_make_request_predicate(method))
         returned.and_call_with_args(_verify_request)
         return returned
-
     def test__request_not_json_encoded(self):
         data = 'some_data'
         fake_response = FakeResponse(httplib.OK, data)
@@ -114,6 +128,9 @@ class SenderTest(TestCase):
             with self.assertRaises(JSONRestRequestException) as caught:
                 self.sender.post(data=send_data)
         exception = caught.exception
+        #make sure the exception is printable
+        self.assertIsInstance(str(exception), basestring)
+        self.assertIsInstance(repr(exception), basestring)
         self.assertEquals(exception.code, code)
         self.assertIs(exception.sent_data, send_data)
         self.assertEquals(exception.url, self.uri)

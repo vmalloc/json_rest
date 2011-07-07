@@ -19,6 +19,6 @@ setup(name="json_rest",
       author_email="vmalloc@gmail.com",
       version=__version__,
       packages=find_packages(exclude=["tests"]),
-      install_requires=["python-cjson", "pyforge"],
+      install_requires=["python-cjson", "pyforge", "sentinels"],
       scripts=[],
       )

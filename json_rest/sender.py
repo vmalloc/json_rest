@@ -1,11 +1,14 @@
+import httplib
 import logging
 import cjson
 from urllib2 import urlopen
 from urllib2 import HTTPError
 from urllib2 import Request as URLLibRequest
 from .exceptions import JSONRestRequestException
-from .sentinels import NO_DATA
+from sentinels import Sentinel
 from .raw import Raw
+
+NO_DATA = Sentinel("NO_DATA")
 
 _logger = logging.getLogger("json_rest")
 _logger.addHandler(logging.NullHandler())
@@ -20,7 +23,7 @@ class AbstractJSONRestSender(object):
     def delete(self, uri=None):
         return self.send_request('DELETE', uri, NO_DATA)
     def send_request(self, method, uri, data):
-        raise NotImplementedError()
+        raise NotImplementedError() # pragma: no cover
 
 class JSONRestSender(AbstractJSONRestSender):
     def __init__(self, uri):
@@ -70,12 +73,11 @@ class JSONRestSender(AbstractJSONRestSender):
         _logger.debug("Got response: code=%s data=%r", response.code, response_data)
         return self._build_response_data(response, response_data)
     def _build_response_data(self, response, response_data):
-        if response_data:
-            if response.headers.get('Content-type') == 'application/json':
-                return cjson.decode(response_data)
-            else:
-                return Raw(response_data)
-        return NO_DATA
+        if response.code == httplib.NO_CONTENT:
+            return NO_DATA
+        if response.headers.get('Content-type') == 'application/json':
+            return cjson.decode(response_data)
+        return Raw(response_data)
 
 def _urljoin(*urls):
     "Like urlparse's urljoin, only more forgiving for lack of slashes"
