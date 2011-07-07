@@ -43,19 +43,27 @@ class JSONRestSender(AbstractJSONRestSender):
         returned = type(self)(self._uri)
         returned.append_uri_fragment(resource)
         return returned
-    def send_request(self, method, uri, data):
-        if data is NO_DATA:
-            send_data = ''
-        else:
-            send_data = cjson.encode(data)
+    def _create_request(self, method, send_data, uri):
         full_uri = self._uri
         if uri is not None:
             full_uri = _urljoin(full_uri, uri)
+        send_data, content_type = self._get_send_data_and_content_type(send_data)
         request = RestRequest(method, full_uri, send_data)
-        _logger.debug("Sending request: %s", request)
         request.add_header("Accept", "application/json")
-        if send_data:
+        if content_type is not None:
             request.add_header('Content-type', 'application/json')
+        return request
+
+    def _get_send_data_and_content_type(self, send_data):
+        if isinstance(send_data, Raw):
+            return send_data, None
+        if send_data is NO_DATA:
+            return NO_DATA, None
+        return cjson.encode(send_data), "application/json"
+
+    def send_request(self, method, uri, data):
+        request = self._create_request(method, data, uri)
+        _logger.debug("Sending request: %s", request)
         try:
             response = urlopen(request)
         except HTTPError, e:
@@ -66,7 +74,7 @@ class JSONRestSender(AbstractJSONRestSender):
             else:
                 error_data = Raw(error_data)
             raise JSONRestRequestException(
-                method, full_uri, e.code,
+                method, request.get_full_url(), e.code,
                 sent_headers=request.headers,
                 sent_data=data, received_headers=e.headers, received_data=error_data)
         response_data = response.read()
