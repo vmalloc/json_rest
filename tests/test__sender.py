@@ -52,6 +52,8 @@ class SenderTest(TestCase):
         self.assertEquals(Raw(''), self.sender.post(data=send_data))
     def test__post(self):
         self._test__request('POST', dict(a=1, b=2))
+    def test__post_raw_data(self):
+        self._test__request('POST', Raw('data'))
     def test__delete(self):
         self._test__request('DELETE')
     def test__put(self):
@@ -88,13 +90,14 @@ class SenderTest(TestCase):
 
     def _expect_json_rest_request(self, method, expected_url, send_data):
         def _verify_request(request):
-            if send_data is NO_DATA:
+            if send_data is NO_DATA or isinstance(send_data, Raw):
                 self.assertIsNone(request.get_header("Content-type"))
             else:
                 self.assertEquals(request.get_data(), cjson.encode(send_data))
                 self.assertEquals(request.get_header("Content-type"), "application/json")
+            if isinstance(send_data, Raw):
+                self.assertEquals(request.get_data(), send_data.data)
             self.assertEqual(request.get_header("Accept"), "application/json")
-
             self.assertEquals(request.get_full_url(), expected_url)
 
         returned = json_rest_sender.urlopen(_make_request_predicate(method))
@@ -139,8 +142,6 @@ class SenderTest(TestCase):
         else:
             self.assertIsInstance(exception.received_data, Raw)
             self.assertEquals(exception.received_data.data, cjson.encode(error_data))
-
-
 
 class FakeResponse(object):
     def __init__(self, code, data='', content_type=None):

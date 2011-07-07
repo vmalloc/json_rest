@@ -56,7 +56,7 @@ class JSONRestSender(AbstractJSONRestSender):
 
     def _get_send_data_and_content_type(self, send_data):
         if isinstance(send_data, Raw):
-            return send_data, None
+            return send_data.data, None
         if send_data is NO_DATA:
             return NO_DATA, None
         return cjson.encode(send_data), "application/json"
