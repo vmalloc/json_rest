@@ -18,6 +18,16 @@ class JSONRestRequestException(Exception):
         self.sent_headers = sent_headers
         self.received_data = received_data
         self.received_headers = received_headers
+    @classmethod
+    def from_request_and_http_error(cls, request, http_error, sent_data, error_data):
+        return cls(
+            method=request.get_method(),
+            url=request.get_full_url(),
+            code=http_error.code,
+            sent_headers=request.headers,
+            sent_data=sent_data,
+            received_headers=http_error.headers,
+            received_data=error_data)
     def __repr__(self):
         return _EXCEPTION_REPR_TEMPLATE.format(e=self)
     def __str__(self):
