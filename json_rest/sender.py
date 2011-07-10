@@ -53,8 +53,6 @@ class JSONRestSender(AbstractJSONRestSender):
         if content_type is not None:
             request.add_header('Content-type', 'application/json')
         return request
-
-
     def send_request(self, method, uri, data):
         request = self._create_request(method, data, uri)
         _logger.debug("Sending request: %s", request)
@@ -71,7 +69,7 @@ class JSONRestSender(AbstractJSONRestSender):
         if isinstance(send_data, Raw):
             return send_data.data, None
         if send_data is NO_DATA:
-            return NO_DATA, None
+            return None, None
         return cjson.encode(send_data), "application/json"
     def _parse_response_data(self, code, response_data, response_headers):
         if code == httplib.NO_CONTENT:
