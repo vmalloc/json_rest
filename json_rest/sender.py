@@ -22,7 +22,10 @@ class AbstractJSONRestSender(object):
         return self.send_request('PUT', uri, data)
     def delete(self, uri=None):
         return self.send_request('DELETE', uri, NO_DATA)
-    def send_request(self, method, uri, data):
+    def send_request(self, method, uri, data=NO_DATA):
+        returned_response = self.send_request_get_response_object(method, uri, data)
+        return returned_response.get_result()
+    def send_request_get_response_object(self, method, uri, data=NO_DATA):
         raise NotImplementedError() # pragma: no cover
 
 class JSONRestSender(AbstractJSONRestSender):
@@ -53,9 +56,6 @@ class JSONRestSender(AbstractJSONRestSender):
         if content_type is not None:
             request.add_header('Content-type', 'application/json')
         return request
-    def send_request(self, method, uri, data=NO_DATA):
-        returned_response = self.send_request_get_response_object(method, uri, data)
-        return returned_response.get_result()
     def send_request_get_response_object(self, method, uri, data=NO_DATA):
         request = self._create_request(method, data, uri)
         _logger.debug("Sending request: %s", request)
