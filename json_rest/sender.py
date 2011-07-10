@@ -53,7 +53,10 @@ class JSONRestSender(AbstractJSONRestSender):
         if content_type is not None:
             request.add_header('Content-type', 'application/json')
         return request
-    def send_request(self, method, uri, data):
+    def send_request(self, method, uri, data=NO_DATA):
+        returned_response = self.send_request_get_response_object(method, uri, data)
+        return returned_response.get_result()
+    def send_request_get_response_object(self, method, uri, data=NO_DATA):
         request = self._create_request(method, data, uri)
         _logger.debug("Sending request: %s", request)
         try:
@@ -64,7 +67,10 @@ class JSONRestSender(AbstractJSONRestSender):
             raise JSONRestRequestException.from_request_and_http_error(request, e, data, error_data)
         response_data = response.read()
         _logger.debug("Got response: code=%s data=%r", response.code, response_data)
-        return self._parse_response_data(response.code, response_data, response.headers)
+        return RestResponse(
+            code=response.code,
+            result=self._parse_response_data(response.code, response_data, response.headers)
+            )
     def _get_send_data_and_content_type(self, send_data):
         if isinstance(send_data, Raw):
             return send_data.data, None
@@ -98,3 +104,13 @@ class RestRequest(URLLibRequest):
         return self._method
     def __repr__(self):
         return "<%s %s <-- %r>" % (self._method, self.get_full_url(), self.get_data())
+
+class RestResponse(object):
+    def __init__(self, code, result):
+        super(RestResponse, self).__init__()
+        self._code = code
+        self._result = result
+    def get_code(self):
+        return self._code
+    def get_result(self):
+        return self._result
