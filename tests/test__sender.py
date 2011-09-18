@@ -4,7 +4,7 @@ from cStringIO import StringIO
 from json_rest import sender as json_rest_sender
 from json_rest import Raw
 from json_rest import NO_DATA
-from json_rest.exceptions import JSONRestRequestException
+from json_rest.exceptions import *
 import cjson
 import forge
 import httplib
@@ -43,7 +43,7 @@ class SenderTest(TestCase):
         send_data = dict(a=1, b=2)
         self._expect_json_rest_request('POST', self.uri, send_data).and_return(FakeResponse(httplib.OK, '', content_type='application/json'))
         self.forge.replay()
-        with self.assertRaises(cjson.DecodeError):
+        with self.assertRaises(JSONRestDecodeException):
             self.sender.post(data=send_data)
     def test__empty_content_not_json_encoded(self):
         send_data = dict(a=1, b=2)

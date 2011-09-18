@@ -4,7 +4,7 @@ import cjson
 from urllib2 import urlopen
 from urllib2 import HTTPError
 from urllib2 import Request as URLLibRequest
-from .exceptions import JSONRestRequestException
+from .exceptions import JSONRestRequestException, JSONRestDecodeException
 from sentinels import Sentinel
 from .raw import Raw
 
@@ -61,27 +61,33 @@ class JSONRestSender(AbstractJSONRestSender):
         _logger.debug("Sending request: %s", request)
         try:
             response = urlopen(request)
-        except HTTPError, e:
-            error_data = self._parse_response_data(e.code, e.fp.read(), e.headers)
-            _logger.debug("Got response: code=%s data=%r", e.code, error_data)
-            raise JSONRestRequestException.from_request_and_http_error(request, e, data, error_data)
+        except HTTPError as response:
+            error_data = self._parse_response_data(response.code, response.fp.read(), response.headers, safe=True)
+            _logger.debug("Got response: code=%s data=%r", response.code, error_data)
+            raise JSONRestRequestException.from_request_and_response(request, response, data, error_data)
         response_data = response.read()
         _logger.debug("Got response: code=%s data=%r", response.code, response_data)
-        return RestResponse(
-            code=response.code,
-            result=self._parse_response_data(response.code, response_data, response.headers)
-            )
+        try:
+            json_data = self._parse_response_data(response.code, response_data, response.headers)
+        except cjson.DecodeError as decode_err:
+            raise JSONRestDecodeException.from_request_and_response(request, response, data,
+                                                                    Raw(response_data), repr(decode_err))
+        return RestResponse(code=response.code, result=json_data)
     def _get_send_data_and_content_type(self, send_data):
         if isinstance(send_data, Raw):
             return send_data.data, None
         if send_data is NO_DATA:
             return None, None
         return cjson.encode(send_data), "application/json"
-    def _parse_response_data(self, code, response_data, response_headers):
+    def _parse_response_data(self, code, response_data, response_headers, safe=False):
         if code == httplib.NO_CONTENT:
             return NO_DATA
         if response_headers.get('content-type') == 'application/json':
-             return cjson.decode(response_data)
+            try:
+                return cjson.decode(response_data)
+            except cjson.DecodeError:
+                if not safe: raise
+                return Raw(response_data)
         return Raw(response_data)
 
 def _urljoin(*urls):
