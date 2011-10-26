@@ -33,6 +33,11 @@ class SenderTest(TestCase):
         self.assertEquals(self.sender.get_uri(), self.uri)
         self.assertIs(json_rest_sender.urlopen, urllib2.urlopen)
         self.forge.replace(json_rest_sender, "urlopen")
+    def test__urlerror_exception_mapping(self):
+        self._expect_json_rest_request("GET", self.uri, NO_DATA).and_raise(urllib2.URLError('reason'))
+        self.forge.replay()
+        with self.assertRaises(JSONRestRequestException):
+            self.sender.get()
     def test__get_sub_resource(self):
         sub_sender = self.sender.get_sub_resource('a/b')
         self.assertIsNot(sub_sender, self.sender)

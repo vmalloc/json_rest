@@ -2,13 +2,11 @@ import httplib
 import logging
 import cjson
 from urllib2 import urlopen
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 from urllib2 import Request as URLLibRequest
 from .exceptions import JSONRestRequestException, JSONRestDecodeException
-from sentinels import Sentinel
 from .raw import Raw
-
-NO_DATA = Sentinel("NO_DATA")
+from .no_data import NO_DATA
 
 _logger = logging.getLogger("json_rest")
 _logger.addHandler(logging.NullHandler())
@@ -65,6 +63,8 @@ class JSONRestSender(AbstractJSONRestSender):
             error_data = self._parse_response_data(response.code, response.fp.read(), response.headers, safe=True)
             _logger.debug("Got response: code=%s data=%r", response.code, error_data)
             raise JSONRestRequestException.from_request_and_response(request, response, data, error_data)
+        except URLError as e:
+            raise JSONRestRequestException.from_request_and_exception(request, e, data)
         response_data = response.read()
         _logger.debug("Got response: code=%s data=%r", response.code, response_data)
         try:

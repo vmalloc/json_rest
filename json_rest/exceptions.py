@@ -1,4 +1,5 @@
 import httplib
+from .no_data import NO_DATA
 
 _EXCEPTION_REPR_TEMPLATE = """HTTP {e.code} ({e.code_string}):
   METHOD: {e.method}
@@ -19,6 +20,18 @@ class JSONRestRequestException(Exception):
         self.received_data = received_data
         self.received_headers = received_headers
         self.msg = msg
+    @classmethod
+    def from_request_and_exception(cls, request, exception, sent_data):
+        return cls(
+            method=request.get_method(),
+            url=request.get_full_url(),
+            code=None,
+            sent_headers=request.headers,
+            sent_data=sent_data,
+            received_headers=None,
+            received_data=NO_DATA,
+            msg=str(exception),
+            )
     @classmethod
     def from_request_and_response(cls, request, response, sent_data, received_data, msg=None):
         return cls(
