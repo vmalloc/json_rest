@@ -57,16 +57,20 @@ class SenderTest(TestCase):
         self.assertEquals(Raw(''), self.sender.post(data=send_data))
     def test__post(self):
         self._test__request('POST', dict(a=1, b=2))
+    def test__post_with_headers(self):
+        self._test__request('POST', dict(a=1, b=2), headers=[('X-some-header', 'some_value'), ('X-another-header', 'another_value')])
     def test__post_raw_data(self):
         self._test__request('POST', Raw('data'))
     def test__delete(self):
         self._test__request('DELETE')
     def test__put(self):
         self._test__request('PUT')
-    def _test__request(self, method, send_data=NO_DATA, return_data=NO_DATA):
+    def _test__request(self, method, send_data=NO_DATA, return_data=NO_DATA, headers=()):
         for subpath in (None, 'a/b'):
-            self._test__request_sending(method, send_data, return_data, subpath)
-    def _test__request_sending(self, method, send_data, return_data, subpath):
+            self._test__request_sending(method, send_data, return_data, subpath, headers=headers)
+    def _test__request_sending(self, method, send_data, return_data, subpath, headers=()):
+        for header in headers:
+            self.sender.set_header(*header)
         func = getattr(self.sender, method.lower())
         if return_data is NO_DATA:
             response_data = ''
@@ -78,7 +82,7 @@ class SenderTest(TestCase):
         if subpath is not None:
             assert not subpath.startswith('/')
             expected_url += '/' + subpath
-        self._expect_json_rest_request(method, expected_url, send_data).and_return(FakeResponse(response_code, response_data, content_type='application/json'))
+        self._expect_json_rest_request(method, expected_url, send_data, expected_headers=headers).and_return(FakeResponse(response_code, response_data, content_type='application/json'))
 
         with self.forge.verified_replay_context():
             args = []
@@ -93,7 +97,7 @@ class SenderTest(TestCase):
         else:
             self.assertEquals(result, return_data)
 
-    def _expect_json_rest_request(self, method, expected_url, send_data):
+    def _expect_json_rest_request(self, method, expected_url, send_data, expected_headers=()):
         def _verify_request(request):
             if send_data is NO_DATA or isinstance(send_data, Raw):
                 self.assertIsNone(request.get_header("Content-type"))
@@ -102,6 +106,8 @@ class SenderTest(TestCase):
                 self.assertEquals(request.get_header("Content-type"), "application/json")
             if isinstance(send_data, Raw):
                 self.assertEquals(request.get_data(), send_data.data)
+            for expected_header_name, expected_header_value in expected_headers:
+                self.assertEquals(request.get_header(expected_header_name), expected_header_value)
             self.assertEqual(request.get_header("Accept"), "application/json")
             self.assertEquals(request.get_full_url(), expected_url)
 

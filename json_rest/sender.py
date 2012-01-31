@@ -30,6 +30,11 @@ class JSONRestSender(AbstractJSONRestSender):
     def __init__(self, uri):
         super(JSONRestSender, self).__init__()
         self._uri = uri
+        self._headers = []
+    def set_header(self, header_name, header_value):
+        self._headers.append((header_name, header_value))
+    def get_headers(self):
+        return dict(self._headers)
     @classmethod
     def from_host_port(cls, host, port, suffix=''):
         returned = cls("http://{}:{}".format(host, port))
@@ -51,6 +56,8 @@ class JSONRestSender(AbstractJSONRestSender):
         send_data, content_type = self._get_send_data_and_content_type(send_data)
         request = RestRequest(method, full_uri, send_data)
         request.add_header("Accept", "application/json")
+        for header_name, header_value in self._headers:
+            request.add_header(header_name, header_value)
         if content_type is not None:
             request.add_header('Content-type', 'application/json')
         return request

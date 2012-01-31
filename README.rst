@@ -8,6 +8,7 @@ This is a small utility for issuing the requests and parsing responses. It takes
 
   >>> from json_rest import JSONRestSender
   >>> sender = JSONRestSender(SERVER_ADDRESS)
+  >>> sender.set_header('X-some-header', 'some-value')
   >>> sender.get('path/to/resource')
   {'hello': 'world'}
   >>> sender.post('path/to/resource', dict(some='data'))
