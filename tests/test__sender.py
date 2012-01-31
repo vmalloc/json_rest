@@ -132,6 +132,16 @@ class SenderTest(TestCase):
             result = self.sender.get()
         self.assertIsInstance(result, Raw)
         self.assertEquals(result.data, data)
+    def test__request_json_encoded_with_charset(self):
+        expected_result = dict(a=1, b=2)
+        data = cjson.encode(expected_result)
+        fake_response = FakeResponse(httplib.OK, data, 'application/json;charset=UTF-8')
+        self._expect_json_rest_request('GET', self.uri, NO_DATA).and_return(
+            fake_response
+            )
+        with self.forge.verified_replay_context():
+            result = self.sender.get()
+        self.assertEquals(result, expected_result)
     def test__http_error_json_encoded(self):
         self._test__http_error(json=True)
     def test__http_error_non_json_encoded(self):

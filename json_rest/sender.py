@@ -96,13 +96,18 @@ class JSONRestSender(AbstractJSONRestSender):
     def _parse_response_data(self, code, response_data, response_headers, safe=False):
         if code == httplib.NO_CONTENT:
             return NO_DATA
-        if response_headers.get('content-type') == 'application/json':
+        if self._is_application_json(response_headers):
             try:
                 return cjson.decode(response_data)
             except cjson.DecodeError:
                 if not safe: raise
                 return Raw(response_data)
         return Raw(response_data)
+    def _is_application_json(self, response_headers):
+        content_type = response_headers.get('content-type')
+        if content_type is not None:
+            content_type = content_type.split(";")[0]
+        return (content_type == 'application/json')
 
 def _urljoin(*urls):
     "Like urlparse's urljoin, only more forgiving for lack of slashes"
