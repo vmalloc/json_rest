@@ -1,4 +1,5 @@
 import httplib
+import itertools
 import logging
 import cjson
 from urllib2 import urlopen
@@ -12,18 +13,18 @@ _logger = logging.getLogger("json_rest")
 _logger.addHandler(logging.NullHandler())
 
 class AbstractJSONRestSender(object):
-    def post(self, uri=None, data=NO_DATA):
-        return self.send_request('POST', uri, data)
-    def get(self, uri=None):
-        return self.send_request('GET', uri, NO_DATA)
-    def put(self, uri=None, data=NO_DATA):
-        return self.send_request('PUT', uri, data)
-    def delete(self, uri=None):
-        return self.send_request('DELETE', uri, NO_DATA)
-    def send_request(self, method, uri, data=NO_DATA):
-        returned_response = self.send_request_get_response_object(method, uri, data)
+    def post(self, uri=None, data=NO_DATA, **kwargs):
+        return self.send_request('POST', uri, data, **kwargs)
+    def get(self, uri=None, **kwargs):
+        return self.send_request('GET', uri, NO_DATA, **kwargs)
+    def put(self, uri=None, data=NO_DATA, **kwargs):
+        return self.send_request('PUT', uri, data, **kwargs)
+    def delete(self, uri=None, **kwargs):
+        return self.send_request('DELETE', uri, NO_DATA, **kwargs)
+    def send_request(self, method, uri, data=NO_DATA, headers=()):
+        returned_response = self.send_request_get_response_object(method, uri, data, headers)
         return returned_response.get_result()
-    def send_request_get_response_object(self, method, uri, data=NO_DATA):
+    def send_request_get_response_object(self, method, uri, data=NO_DATA, headers=()):
         raise NotImplementedError() # pragma: no cover
 
 class JSONRestSender(AbstractJSONRestSender):
@@ -49,20 +50,22 @@ class JSONRestSender(AbstractJSONRestSender):
         returned = type(self)(self._uri)
         returned.append_uri_fragment(resource)
         return returned
-    def _create_request(self, method, send_data, uri):
+    def _create_request(self, method, send_data, uri, headers):
+        if not isinstance(headers, dict):
+            headers = dict(headers)
         full_uri = self._uri
         if uri is not None:
             full_uri = _urljoin(full_uri, uri)
         send_data, content_type = self._get_send_data_and_content_type(send_data)
         request = RestRequest(method, full_uri, send_data)
         request.add_header("Accept", "application/json")
-        for header_name, header_value in self._headers:
+        for header_name, header_value in itertools.chain(self._headers, headers.items()):
             request.add_header(header_name, header_value)
         if content_type is not None:
             request.add_header('Content-type', 'application/json')
         return request
-    def send_request_get_response_object(self, method, uri, data=NO_DATA):
-        request = self._create_request(method, data, uri)
+    def send_request_get_response_object(self, method, uri, data=NO_DATA, headers=()):
+        request = self._create_request(method, data, uri, headers)
         _logger.debug("Sending request: %s", request)
         try:
             response = urlopen(request)

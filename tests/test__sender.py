@@ -1,3 +1,4 @@
+import itertools
 import unittest
 from .test_utils import TestCase
 from cStringIO import StringIO
@@ -30,6 +31,9 @@ class SenderTest(TestCase):
         super(SenderTest, self).setUp()
         self.uri = "http://www.bla.com/r/a/b"
         self.sender = json_rest_sender.JSONRestSender(self.uri)
+        self.headers = [('X-setup-header-1', 'value1'), ('X-setup-header-2', 'value2')]
+        for header_name, header_value in self.headers:
+            self.sender.set_header(header_name, header_value)
         self.assertEquals(self.sender.get_uri(), self.uri)
         self.assertIs(json_rest_sender.urlopen, urllib2.urlopen)
         self.forge.replace(json_rest_sender, "urlopen")
@@ -69,8 +73,6 @@ class SenderTest(TestCase):
         for subpath in (None, 'a/b'):
             self._test__request_sending(method, send_data, return_data, subpath, headers=headers)
     def _test__request_sending(self, method, send_data, return_data, subpath, headers=()):
-        for header in headers:
-            self.sender.set_header(*header)
         func = getattr(self.sender, method.lower())
         if return_data is NO_DATA:
             response_data = ''
@@ -82,13 +84,14 @@ class SenderTest(TestCase):
         if subpath is not None:
             assert not subpath.startswith('/')
             expected_url += '/' + subpath
-        self._expect_json_rest_request(method, expected_url, send_data, expected_headers=headers).and_return(FakeResponse(response_code, response_data, content_type='application/json'))
+        self._expect_json_rest_request(method, expected_url, send_data, headers=headers).and_return(FakeResponse(response_code, response_data, content_type='application/json'))
 
         with self.forge.verified_replay_context():
             args = []
             if subpath is not None:
                 args.append(subpath)
             kwargs = {}
+            kwargs.update(headers=headers)
             if send_data is not NO_DATA:
                 kwargs.update(data=send_data)
             result = func(*args, **kwargs)
@@ -97,7 +100,7 @@ class SenderTest(TestCase):
         else:
             self.assertEquals(result, return_data)
 
-    def _expect_json_rest_request(self, method, expected_url, send_data, expected_headers=()):
+    def _expect_json_rest_request(self, method, expected_url, send_data, headers=()):
         def _verify_request(request):
             if send_data is NO_DATA or isinstance(send_data, Raw):
                 self.assertIsNone(request.get_header("Content-type"))
@@ -106,7 +109,7 @@ class SenderTest(TestCase):
                 self.assertEquals(request.get_header("Content-type"), "application/json")
             if isinstance(send_data, Raw):
                 self.assertEquals(request.get_data(), send_data.data)
-            for expected_header_name, expected_header_value in expected_headers:
+            for expected_header_name, expected_header_value in itertools.chain(headers, self.headers):
                 self.assertEquals(request.get_header(expected_header_name), expected_header_value)
             self.assertEqual(request.get_header("Accept"), "application/json")
             self.assertEquals(request.get_full_url(), expected_url)
