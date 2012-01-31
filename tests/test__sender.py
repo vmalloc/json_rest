@@ -6,6 +6,7 @@ from json_rest import sender as json_rest_sender
 from json_rest import Raw
 from json_rest import NO_DATA
 from json_rest.exceptions import *
+import base64
 import cjson
 import forge
 import httplib
@@ -18,6 +19,10 @@ class SenderInitializationTest(TestCase):
     def test__from_host_port_suffix(self):
         sender = json_rest_sender.JSONRestSender.from_host_port("a", 80, "some/path")
         self.assertEquals(sender.get_uri(), "http://a:80/some/path")
+    def test__set_basic_authorization(self):
+        sender = json_rest_sender.JSONRestSender.from_host_port("a", 80)
+        sender.set_basic_authorization("username", "password")
+        self.assertEquals(sender.get_headers()['Authorization'], 'Basic ' + base64.encodestring("username:password").rstrip())
     def test__subclassing(self):
         class NewSender(json_rest_sender.JSONRestSender):
             pass

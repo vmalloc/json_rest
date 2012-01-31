@@ -1,3 +1,4 @@
+import base64
 import httplib
 import itertools
 import logging
@@ -36,6 +37,9 @@ class JSONRestSender(AbstractJSONRestSender):
         self._headers.append((header_name, header_value))
     def get_headers(self):
         return dict(self._headers)
+    def set_basic_authorization(self, username, password):
+        auth_string = 'Basic {}'.format(base64.encodestring('{}:{}'.format(username, password)))
+        self.set_header('Authorization', auth_string.rstrip())
     @classmethod
     def from_host_port(cls, host, port, suffix=''):
         returned = cls("http://{}:{}".format(host, port))
