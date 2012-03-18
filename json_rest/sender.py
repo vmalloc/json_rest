@@ -29,10 +29,11 @@ class AbstractJSONRestSender(object):
         raise NotImplementedError() # pragma: no cover
 
 class JSONRestSender(AbstractJSONRestSender):
-    def __init__(self, uri):
+    def __init__(self, uri, default_timeout_seconds=None):
         super(JSONRestSender, self).__init__()
         self._uri = uri
         self._headers = []
+        self._default_timeout_seconds=default_timeout_seconds
     def set_header(self, header_name, header_value):
         self._headers.append((header_name, header_value))
     def get_headers(self):
@@ -72,6 +73,8 @@ class JSONRestSender(AbstractJSONRestSender):
         request = self._create_request(method, data, uri, headers)
         kwargs = {}
         # preserve urllib's default timeout (it's not None by default)
+        if timeout is None:
+            timeout = self._default_timeout_seconds
         if timeout is not None:
             kwargs.update(timeout=timeout)
         _logger.debug("Sending request: %s", request)
