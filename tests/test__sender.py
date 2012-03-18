@@ -30,6 +30,10 @@ class SenderInitializationTest(TestCase):
         new_sender = sender.get_sub_resource("a/b")
         self.assertIsNot(sender, new_sender)
         self.assertIsInstance(new_sender, NewSender)
+    def test__timeout_passing(self):
+        timeout_seconds=127
+        sender = json_rest_sender.JSONRestSender.from_host_port("www.example.com", 8080, default_timeout_seconds=timeout_seconds)
+        self.assertEquals(sender._default_timeout_seconds, timeout_seconds)
 
 class SenderTest(TestCase):
     def setUp(self):

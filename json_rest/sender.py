@@ -42,8 +42,8 @@ class JSONRestSender(AbstractJSONRestSender):
         auth_string = 'Basic {}'.format(base64.encodestring('{}:{}'.format(username, password)))
         self.set_header('Authorization', auth_string.rstrip())
     @classmethod
-    def from_host_port(cls, host, port, suffix=''):
-        returned = cls("http://{}:{}".format(host, port))
+    def from_host_port(cls, host, port, suffix='', **kwargs):
+        returned = cls("http://{}:{}".format(host, port), **kwargs)
         if suffix:
             returned.append_uri_fragment(suffix)
         return returned
