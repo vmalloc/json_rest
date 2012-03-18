@@ -22,10 +22,10 @@ class AbstractJSONRestSender(object):
         return self.send_request('PUT', uri, data, **kwargs)
     def delete(self, uri=None, **kwargs):
         return self.send_request('DELETE', uri, NO_DATA, **kwargs)
-    def send_request(self, method, uri, data=NO_DATA, headers=()):
-        returned_response = self.send_request_get_response_object(method, uri, data, headers)
+    def send_request(self, method, uri, data=NO_DATA, headers=(), timeout=None):
+        returned_response = self.send_request_get_response_object(method, uri, data, headers, timeout=timeout)
         return returned_response.get_result()
-    def send_request_get_response_object(self, method, uri, data=NO_DATA, headers=()):
+    def send_request_get_response_object(self, method, uri, data=NO_DATA, headers=(), timeout=None):
         raise NotImplementedError() # pragma: no cover
 
 class JSONRestSender(AbstractJSONRestSender):
@@ -68,11 +68,15 @@ class JSONRestSender(AbstractJSONRestSender):
         if content_type is not None:
             request.add_header('Content-type', 'application/json')
         return request
-    def send_request_get_response_object(self, method, uri, data=NO_DATA, headers=()):
+    def send_request_get_response_object(self, method, uri, data=NO_DATA, headers=(), timeout=None):
         request = self._create_request(method, data, uri, headers)
+        kwargs = {}
+        # preserve urllib's default timeout (it's not None by default)
+        if timeout is not None:
+            kwargs.update(timeout=timeout)
         _logger.debug("Sending request: %s", request)
         try:
-            response = urlopen(request)
+            response = urlopen(request, **kwargs)
         except HTTPError as response:
             error_data = self._parse_response_data(response.code, response.fp.read(), response.headers, safe=True)
             _logger.debug("Got response: code=%s data=%r", response.code, error_data)

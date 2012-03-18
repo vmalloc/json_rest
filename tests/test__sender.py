@@ -105,8 +105,8 @@ class SenderTest(TestCase):
         else:
             self.assertEquals(result, return_data)
 
-    def _expect_json_rest_request(self, method, expected_url, send_data, headers=()):
-        def _verify_request(request):
+    def _expect_json_rest_request(self, method, expected_url, send_data, headers=(), timeout=None):
+        def _verify_request(request, *args, **kwargs):
             if send_data is NO_DATA or isinstance(send_data, Raw):
                 self.assertIsNone(request.get_header("Content-type"))
             else:
@@ -119,9 +119,18 @@ class SenderTest(TestCase):
             self.assertEqual(request.get_header("Accept"), "application/json")
             self.assertEquals(request.get_full_url(), expected_url)
 
-        returned = json_rest_sender.urlopen(_make_request_predicate(method))
+        expected_kwargs = {}
+        if timeout is not None:
+            expected_kwargs.update(timeout=timeout)
+        returned = json_rest_sender.urlopen(_make_request_predicate(method), **expected_kwargs)
         returned.and_call_with_args(_verify_request)
         return returned
+    def test__request_timeout(self):
+        timeout = 667
+        fake_response = FakeResponse(httplib.OK, '')
+        self._expect_json_rest_request('GET', self.uri, NO_DATA, timeout=timeout).and_return(fake_response)
+        with self.forge.verified_replay_context():
+            result = self.sender.get(timeout=timeout)
     def test__request_not_json_encoded(self):
         data = 'some_data'
         fake_response = FakeResponse(httplib.OK, data)
