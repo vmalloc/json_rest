@@ -1,9 +1,14 @@
 import os
+import platform
 import itertools
 from setuptools import setup, find_packages
 
 with open(os.path.join(os.path.dirname(__file__), "json_rest", "__version__.py")) as version_file:
-    exec version_file.read()
+    exec(version_file.read())
+
+_INSTALL_REQUIREMENTS = ["python-cjson", "pyforge", "sentinels"]
+if platform.python_version() < '2.7':
+    _INSTALL_REQUIREMENTS.append('unittest2')
 
 setup(name="json_rest",
       classifiers = [
@@ -18,6 +23,6 @@ setup(name="json_rest",
       author_email="vmalloc@gmail.com",
       version=__version__,
       packages=find_packages(exclude=["tests"]),
-      install_requires=["python-cjson", "pyforge", "sentinels"],
+      install_requires=_INSTALL_REQUIREMENTS,
       scripts=[],
       )
