@@ -30,15 +30,18 @@ class AbstractJSONRestSender(object):
         raise NotImplementedError() # pragma: no cover
 
 class JSONRestSender(AbstractJSONRestSender):
-    def __init__(self, uri, default_timeout_seconds=None):
+    def __init__(self, uri, default_timeout_seconds=None, parent=None):
         super(JSONRestSender, self).__init__()
         self._uri = uri
         self._headers = []
         self._default_timeout_seconds=default_timeout_seconds
+        self._parent = parent
     def set_header(self, header_name, header_value):
         self._headers.append((header_name, header_value))
     def get_headers(self):
-        return dict(self._headers)
+        returned = self._parent.get_headers() if self._parent is not None else {}
+        returned.update(self._headers)
+        return returned
     def set_basic_authorization(self, username, password):
         auth_string = 'Basic {0}'.format(base64.encodestring('{0}:{1}'.format(username, password)))
         self.set_header('Authorization', auth_string.rstrip())
@@ -53,7 +56,7 @@ class JSONRestSender(AbstractJSONRestSender):
     def append_uri_fragment(self, fragment):
         self._uri = _urljoin(self._uri, fragment)
     def get_sub_resource(self, resource):
-        returned = type(self)(self._uri)
+        returned = type(self)(self._uri, parent=self)
         returned.append_uri_fragment(resource)
         return returned
     def _create_request(self, method, send_data, uri, headers):
@@ -65,7 +68,7 @@ class JSONRestSender(AbstractJSONRestSender):
         send_data, content_type = self._get_send_data_and_content_type(send_data)
         request = RestRequest(method, full_uri, send_data)
         request.add_header("Accept", "application/json")
-        for header_name, header_value in itertools.chain(self._headers, headers.items()):
+        for header_name, header_value in itertools.chain(self.get_headers().iteritems(), headers.items()):
             request.add_header(header_name, header_value)
         if content_type is not None:
             request.add_header('Content-type', 'application/json')

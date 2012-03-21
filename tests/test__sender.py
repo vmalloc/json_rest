@@ -51,10 +51,6 @@ class SenderTest(TestCase):
         self.forge.replay()
         with self.assertRaises(JSONRestRequestException):
             self.sender.get()
-    def test__get_sub_resource(self):
-        sub_sender = self.sender.get_sub_resource('a/b')
-        self.assertIsNot(sub_sender, self.sender)
-        self.assertEquals(sub_sender.get_uri(), self.uri + '/a/b')
     def test__get(self):
         self._test__request('GET', return_data=dict(a=1, b=2))
     def test__empty_content_and_json_encoded(self):
@@ -184,6 +180,36 @@ class SenderTest(TestCase):
         else:
             self.assertIsInstance(exception.received_data, Raw)
             self.assertEquals(exception.received_data.data, cjson.encode(error_data))
+
+class SubResourceTest(TestCase):
+    def setUp(self):
+        super(SubResourceTest, self).setUp()
+        self.url = "url_here"
+        self.suburl = "a/b"
+        self.port = 1337
+        self.parent_sender = json_rest_sender.JSONRestSender.from_host_port(self.url, self.port)
+        self.headers = {"X-Some-Header" : "some_value", "X-Other-Header" : "some_other_value"}
+        for header_name, header_value in self.headers.iteritems():
+            self.parent_sender.set_header(header_name, header_value)
+        self.sub = self.parent_sender.get_sub_resource(self.suburl)
+    def test__basic_attributes(self):
+        self.assertIsNot(self.sub, self.parent_sender)
+        self.assertEquals(self.sub.get_uri(), self.parent_sender.get_uri() + '/a/b')
+    def test__headers_copied(self):
+        self.assertEquals(self.parent_sender.get_headers(), self.headers)
+        self.assertEquals(self.sub.get_headers(), self.parent_sender.get_headers())
+    def test__headers_update(self):
+        new_headers = {"X-New-Header": "X-New-Value"}
+        for x, y in new_headers.iteritems():
+            self.parent_sender.set_header(x, y)
+        expected_headers = dict(self.headers)
+        expected_headers.update(new_headers)
+        self.assertEquals(self.parent_sender.get_headers(), expected_headers)
+        self.assertEquals(self.sub.get_headers(), expected_headers)
+    def test__headers_dont_propagate_to_parent(self):
+        self.sub.set_header("x", "y")
+        self.assertEquals(self.sub.get_headers(), dict(self.headers, x="y"))
+        self.assertEquals(self.parent_sender.get_headers(), self.headers)
 
 class FakeResponse(object):
     def __init__(self, code, data='', content_type=None):
