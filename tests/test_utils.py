@@ -1,5 +1,8 @@
 from forge import Forge
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 class TestCase(unittest.TestCase):
     def setUp(self):

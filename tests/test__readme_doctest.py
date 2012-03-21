@@ -24,7 +24,7 @@ class ReadMeDocTest(TestCase):
         self.server_process = multiprocessing.Process(target=httpd.serve_forever)
         self.server_process.daemon = True
         self.server_process.start()
-        self.server_address = "http://{}:{}".format(*httpd.server_address)
+        self.server_address = "http://{0}:{1}".format(*httpd.server_address)
     def tearDown(self):
         self.server_process.terminate()
         super(ReadMeDocTest, self).tearDown()

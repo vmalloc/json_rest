@@ -9,9 +9,10 @@ from urllib2 import Request as URLLibRequest
 from .exceptions import JSONRestRequestException, JSONRestDecodeException
 from .raw import Raw
 from .no_data import NO_DATA
+from .logging_utils import NullHandler
 
 _logger = logging.getLogger("json_rest")
-_logger.addHandler(logging.NullHandler())
+_logger.addHandler(NullHandler())
 
 class AbstractJSONRestSender(object):
     def post(self, uri=None, data=NO_DATA, **kwargs):
@@ -39,11 +40,11 @@ class JSONRestSender(AbstractJSONRestSender):
     def get_headers(self):
         return dict(self._headers)
     def set_basic_authorization(self, username, password):
-        auth_string = 'Basic {}'.format(base64.encodestring('{}:{}'.format(username, password)))
+        auth_string = 'Basic {0}'.format(base64.encodestring('{0}:{1}'.format(username, password)))
         self.set_header('Authorization', auth_string.rstrip())
     @classmethod
     def from_host_port(cls, host, port, suffix='', **kwargs):
-        returned = cls("http://{}:{}".format(host, port), **kwargs)
+        returned = cls("http://{0}:{1}".format(host, port), **kwargs)
         if suffix:
             returned.append_uri_fragment(suffix)
         return returned
